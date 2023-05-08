@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using System.Diagnostics;
 
 public static class b7ExampleLibrary {
     [DllImport("/home/batshevak/projects/new_jj/Hailo-Application-Code-Examples/infer_wrapper/infer_wrapper/libinfer.so", 
@@ -26,19 +27,30 @@ class Program {
         ulong n3 = FEATURE_MAP_SIZE3 * FEATURE_MAP_SIZE3 * FEATURE_MAP_CHANNELS * ANCHORS_NUM * FLOAT;
         float[] arr3 = new float[n3];
 
-        int infer_result = b7ExampleLibrary.infer_wrapper("yolov5m_wo_spp_60p.hef", "images", arr1, n1, arr2, n2, arr3, n3);
-
-        float arr1_0 =arr1[0];
-        float arr1_1 = arr1[1];
-
-        for (ulong i = 4; i < n1; i=i+5)
-        {
-            if (arr1[i] >= 0.3) {
-                Console.WriteLine(i + ": " + arr1[i]);
-            }
+        int num_frames = 100;
+        Stopwatch stopWatch = new Stopwatch();
+        stopWatch.Start();
+        for (int i = 0; i < num_frames; i++) {
+            int infer_result = b7ExampleLibrary.infer_wrapper("yolov5m_wo_spp_60p.hef", "images", arr1, n1, arr2, n2, arr3, n3);
         }
+        stopWatch.Stop();
+        TimeSpan ts = stopWatch.Elapsed;
+        // string elapsedTime = String.Format("{0:00}:{1:00}:{2:00}.{3:00}",
+        //     ts.Hours, ts.Minutes, ts.Seconds,
+        //     ts.Milliseconds / 10);
+        Console.WriteLine("FPS " + num_frames/(ts.TotalSeconds));
 
-        Console.WriteLine("values: " + arr1_0 + ", " + arr1_1 + ", infer result: " + infer_result);
+        // float arr1_0 =arr1[0];
+        // float arr1_1 = arr1[1];
+
+        // // for (ulong i = 4; i < n1; i=i+5)
+        // // {
+        // //     if (arr1[i] >= 0.3) {
+        // //         Console.WriteLine(i + ": " + arr1[i]);
+        // //     }
+        // // }
+
+        // Console.WriteLine("values: " + arr1_0 + ", " + arr1_1 + ", infer result: " + infer_result);
         
     }
 }
