@@ -36,7 +36,7 @@ class Program {
     public const int BUFFER_SIZE = 6; // In case of synchronization issues (c++ produces more than xBUFFER_SIZE faster than c# consumes)- make the buffer bigger.
     public const int CONF_IDX = 4;
     public const float CONF_THR = 0.5F;
-    public const int MILISEC_TO_WAIT = 1; // 0.001 sec
+    public const int MILISECS_TO_WAIT = 1; // 0.001 sec
 
     static unsafe void Main() {
         
@@ -77,7 +77,7 @@ class Program {
         for (int frameIdx = 0; frameIdx < framesCount; frameIdx++) {
             int bufferIdx = frameIdx % bufferSize;
             while (framesReady[bufferIdx] == -1) {
-                Thread.Sleep(MILISEC_TO_WAIT); // on windows, will sleep by default 15.6 millisecs...
+                Thread.Sleep(MILISECS_TO_WAIT); // on windows, will sleep by default in granularity of 15.6 millisecs
             }
             int numDetectionsFound = framesReady[bufferIdx];
             for (int idxDetection = 0; idxDetection < numDetectionsFound; idxDetection++) {
