@@ -2,9 +2,10 @@
 ### Full Yolov5 Inference On Hailo-8 With c# Wrapper
 ## This branch is for windows (MSVC compiler)
 
-## Usage 
-1. build & run cpp_full_wrapper in Release mode  
-2. build & run infer_wrapper (c#) in Release mode:  
+## Usage  
+0. Get hef: https://hailo-model-zoo.s3.eu-west-2.amazonaws.com/ModelZoo/Compiled/v2.4.0/yolov5m_wo_spp_60p.hef
+1. Build & run cpp_full_wrapper in Release mode  
+2. Build & run infer_wrapper (c#) in Release mode  
 One way to do it is in cmd:  
 ```
 dotnet build -c Release
