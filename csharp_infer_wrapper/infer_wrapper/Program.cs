@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 using CocoClasses;
 
 public static class InferLibrary {
-    [DllImport("../cpp_full_wrapper/build/libinfer.so", 
+    [DllImport("../cpp_full_wrapper/build/Release/infer.dll", 
     CallingConvention = CallingConvention.Cdecl)]
     public static extern int infer_wrapper(string hef_path, string images_path, string arch, float conf_thr,
     float[] detections, int max_num_detections, int[] frames_ready, int buffer_size);
@@ -77,7 +77,7 @@ class Program {
         for (int frameIdx = 0; frameIdx < framesCount; frameIdx++) {
             int bufferIdx = frameIdx % bufferSize;
             while (framesReady[bufferIdx] == -1) {
-                Thread.Sleep(MILISEC_TO_WAIT);
+                Thread.Sleep(MILISEC_TO_WAIT); // on windows, will sleep by default 15.6 millisecs...
             }
             int numDetectionsFound = framesReady[bufferIdx];
             for (int idxDetection = 0; idxDetection < numDetectionsFound; idxDetection++) {

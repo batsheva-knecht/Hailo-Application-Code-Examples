@@ -11,7 +11,7 @@
  * You shall not reproduce, modify or distribute this software without prior written permission.
  **/
 /**
- * @ file example_common.h
+ * @ file example_common.hpp
  * Common macros and defines used by Hailort Examples
  **/
 

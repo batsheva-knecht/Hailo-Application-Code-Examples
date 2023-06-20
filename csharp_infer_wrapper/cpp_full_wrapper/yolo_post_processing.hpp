@@ -21,6 +21,7 @@
 #include <vector>
 #include <unordered_map>
 #include <stdint.h>
+#include <string>
 
 typedef float float32_t;
 

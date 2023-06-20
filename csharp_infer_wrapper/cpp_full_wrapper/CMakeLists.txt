@@ -1,14 +1,18 @@
-cmake_minimum_required(VERSION 3.0.0)
+cmake_minimum_required(VERSION 3.11)
 
 project(infer VERSION 1.0.1 DESCRIPTION "yolov5 inference on hailo-8")
 
 set(COMPILE_OPTIONS -Wall -std=c++20 -Werror -O3)
 set(CMAKE_CXX_STANDARD 20)
 
+add_definitions(/DNOMINMAX
+				/D_HAILO_EXPORTING
+                /wd4201
+                /W4
+                /DWIN32_LEAN_AND_MEAN
+                /wd4251 )
+
 add_library(infer SHARED
-    double_buffer.hpp
-    common.h
-    yolo_post_processing.hpp
     yolo_post_processing.cpp
     infer.cpp)
 

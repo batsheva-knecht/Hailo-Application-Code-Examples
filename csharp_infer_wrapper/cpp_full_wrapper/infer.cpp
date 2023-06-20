@@ -1,5 +1,6 @@
+#include "infer.hpp"
 #include "hailo/hailort.hpp"
-#include "common.h"
+#include "common.hpp"
 #include "yolo_post_processing.hpp"
 
 #include <iostream>
@@ -11,6 +12,10 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/core/matx.hpp>
 #include <opencv2/imgcodecs.hpp>
+
+#ifdef _WIN32
+    #include <Windows.h>
+#endif
 
 using namespace hailort;
 
@@ -52,8 +57,7 @@ hailo_status post_processing_all(std::vector<std::shared_ptr<FeatureData>> &feat
                                 float32_t* detections, const int max_num_detections, int* frames_ready, const int buffer_size, float thr)
 {
     std::sort(features.begin(), features.end(), &FeatureData::sort_tensors_by_size);
-    std::chrono::time_point<std::chrono::system_clock> t_start = std::chrono::high_resolution_clock::now();
-
+    auto t_start = std::chrono::high_resolution_clock::now(); 
     for (int idx_frame = 0; idx_frame < frame_count; idx_frame++) {
         auto detections_struct = post_processing(max_num_detections, thr, arch,
             features[0]->m_buffers.get_read_buffer().data(), features[0]->m_qp_zp, features[0]->m_qp_scale,
@@ -87,14 +91,14 @@ hailo_status post_processing_all(std::vector<std::shared_ptr<FeatureData>> &feat
         frames[idx_frame].release();   
     }
 
-    std::chrono::time_point<std::chrono::system_clock> t_end = std::chrono::high_resolution_clock::now();
+    auto t_end = std::chrono::high_resolution_clock::now();
     postprocess_time = t_end - t_start;
 
     return HAILO_SUCCESS;
 }
 
 
-hailo_status read_all(OutputVStream& output_vstream, std::shared_ptr<FeatureData> feature, int frame_count, std::chrono::time_point<std::chrono::system_clock>& read_time_vec) 
+hailo_status read_all(OutputVStream& output_vstream, std::shared_ptr<FeatureData> feature, int frame_count, std::chrono::steady_clock::time_point& read_time_vec) 
 {
     hailo_status status = HAILO_UNINITIALIZED;
     for (int i = 0; i < frame_count; i++) {
@@ -111,7 +115,7 @@ hailo_status read_all(OutputVStream& output_vstream, std::shared_ptr<FeatureData
     return HAILO_SUCCESS;
 }
 
-hailo_status write_all(InputVStream& input_vstream, std::string images_path, std::chrono::time_point<std::chrono::system_clock>& write_time_vec, std::vector<cv::Mat>& frames) 
+hailo_status write_all(InputVStream& input_vstream, std::string images_path, std::chrono::steady_clock::time_point& write_time_vec, std::vector<cv::Mat>& frames) 
 {
     hailo_status status = HAILO_UNINITIALIZED;
     
@@ -157,8 +161,8 @@ hailo_status create_feature(hailo_vstream_info_t vstream_info, size_t output_fra
 
 
 hailo_status run_inference(std::vector<InputVStream>& input_vstream, std::vector<OutputVStream>& output_vstreams, std::string images_path, int frame_count,
-                    std::chrono::time_point<std::chrono::system_clock>& write_time_vec,
-                    std::vector<std::chrono::time_point<std::chrono::system_clock>>& read_time_vec,
+                    std::chrono::steady_clock::time_point& write_time_vec,
+                    std::vector<std::chrono::steady_clock::time_point>& read_time_vec,
                     std::chrono::duration<double>& inference_time, std::chrono::duration<double>& postprocess_time, std::string arch, const float conf_thr,
                     float32_t* detections, const int max_num_detections, int* frames_ready, const int buffer_size) 
 {
@@ -171,7 +175,7 @@ hailo_status run_inference(std::vector<InputVStream>& input_vstream, std::vector
     features.reserve(output_vstreams_size);
     for (size_t i = 0; i < output_vstreams_size; i++) {
         std::shared_ptr<FeatureData> feature(nullptr);
-        auto status = create_feature(output_vstreams[i].get_info(), output_vstreams[i].get_frame_size(), feature);
+        status = create_feature(output_vstreams[i].get_info(), output_vstreams[i].get_frame_size(), feature);
         if (HAILO_SUCCESS != status) {
             std::cerr << "Failed creating feature with status = " << status << std::endl;
             return status;
@@ -263,16 +267,17 @@ Expected<std::shared_ptr<ConfiguredNetworkGroup>> configure_network_group(VDevic
     return std::move(network_groups->at(0));
 }
 
-extern "C" int infer_wrapper(const char* hef_path, const char* images_path, const char* arch, const float conf_thr, float* detections, const int max_num_detections, int* frames_ready, const int buffer_size) 
+// extern "C" 
+int infer_wrapper(const char* hef_path, const char* images_path, const char* arch, const float conf_thr, float* detections, const int max_num_detections, int* frames_ready, const int buffer_size) 
 {
     auto infer_start = std::chrono::steady_clock::now();
 
     hailo_status status = HAILO_UNINITIALIZED;
 
     std::chrono::duration<double> total_time;
-    std::chrono::time_point<std::chrono::system_clock> t_start = std::chrono::high_resolution_clock::now();
+    std::chrono::steady_clock::time_point t_start = std::chrono::high_resolution_clock::now();
 
-    std::chrono::time_point<std::chrono::system_clock> write_time_vec;
+    std::chrono::steady_clock::time_point write_time_vec;
     std::chrono::duration<double> inference_time;
     std::chrono::duration<double> postprocess_time;
 
@@ -298,7 +303,7 @@ extern "C" int infer_wrapper(const char* hef_path, const char* images_path, cons
     }
     auto vstreams = vstreams_exp.release();
 
-    std::vector<std::chrono::time_point<std::chrono::system_clock>> read_time_vec(vstreams.second.size());
+    std::vector<std::chrono::steady_clock::time_point> read_time_vec(vstreams.second.size());
 
     print_net_banner(vstreams);
 
@@ -325,7 +330,7 @@ extern "C" int infer_wrapper(const char* hef_path, const char* images_path, cons
 
     // print_inference_statistics(inference_time, postprocess_time, hef_path, frame_count);
 
-    std::chrono::time_point<std::chrono::system_clock> t_end = std::chrono::high_resolution_clock::now();
+    std::chrono::steady_clock::time_point t_end = std::chrono::high_resolution_clock::now();
     total_time = t_end - t_start;
 
     // std::cout << BOLDBLUE << "\n-I- Inference run finished successfully" << RESET << std::endl;
@@ -336,3 +341,18 @@ extern "C" int infer_wrapper(const char* hef_path, const char* images_path, cons
     status = HAILO_SUCCESS;
     return status;
 }
+
+#ifdef _WIN32
+    BOOL APIENTRY DllMain(HMODULE, DWORD ul_reason_for_call, LPVOID)
+    {
+        switch (ul_reason_for_call)
+        {
+            case DLL_PROCESS_ATTACH:
+            case DLL_THREAD_ATTACH:
+            case DLL_THREAD_DETACH:
+            case DLL_PROCESS_DETACH:
+                break;
+        }
+        return TRUE;
+    }
+#endif
