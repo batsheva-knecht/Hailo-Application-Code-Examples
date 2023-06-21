@@ -5,14 +5,14 @@
 ## Usage  
 0. Get hef: https://hailo-model-zoo.s3.eu-west-2.amazonaws.com/ModelZoo/Compiled/v2.4.0/yolov5m_wo_spp_60p.hef  
 and move it to `Hailo-Application-Code-Examples\csharp_infer_wrapper\infer_wrapper`.  
-1. Build & run cpp_full_wrapper in Release mode  
-One way to do it is in terminal:  
+1. Build & run cpp_full_wrapper in Release mode (in vscode).  
+Another way to do it is in vs terminal:  
 ```
 cd csharp_infer_wrapper\cpp_full_wrapper
 cmake -H. -Bbuild -A=x64 -DCMAKE_BUILD_TYPE=Release && cmake --build build --config release
 ``` 
 2. Build & run infer_wrapper (c#) in Release mode  
-One way to do it is in terminal:  
+One way to do it is in vs terminal (x64 Native Tools Command Prompt for VS):  
 ```
 cd ..\infer_wrapper
 dotnet build -c Release
