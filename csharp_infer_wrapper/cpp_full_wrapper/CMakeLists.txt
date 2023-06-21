@@ -3,20 +3,22 @@ cmake_minimum_required(VERSION 3.11)
 project(infer VERSION 1.0.1 DESCRIPTION "yolov5 inference on hailo-8")
 
 set(COMPILE_OPTIONS -Wall -std=c++20 -Werror -O3)
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 20) # test without.
 
-add_definitions(/DNOMINMAX
-				/D_HAILO_EXPORTING
-                /wd4201
-                /W4
-                /DWIN32_LEAN_AND_MEAN
-                /wd4251 )
+if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    add_definitions(/DNOMINMAX
+    /D_HAILO_EXPORTING
+    /wd4201
+    /W4
+    /DWIN32_LEAN_AND_MEAN
+    /wd4251 )
+endif()
 
 add_library(infer SHARED
     yolo_post_processing.cpp
     infer.cpp)
 
-set_target_properties(infer PROPERTIES PUBLIC_HEADER include/infer.hpp)
+set_target_properties(infer PROPERTIES PUBLIC_HEADER include/infer.hpp) # fix to have only one infer.hpp
 
 install(TARGETS infer
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -30,4 +32,4 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 
 target_link_libraries(infer PRIVATE HailoRT::libhailort Threads::Threads ${OpenCV_LIBS})
 
-set_target_properties(infer PROPERTIES CXX_STANDARD 14)
+set_target_properties(infer PROPERTIES CXX_STANDARD 20)

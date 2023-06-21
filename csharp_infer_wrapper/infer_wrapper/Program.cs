@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 using CocoClasses;
 
 public static class InferLibrary {
-    [DllImport("../cpp_full_wrapper/build/Release/infer.dll", 
+    [DllImport("../cpp_full_wrapper/build/Release/infer.so", 
     CallingConvention = CallingConvention.Cdecl)]
     public static extern int infer_wrapper(string hef_path, string images_path, string arch, float conf_thr,
     float[] detections, int max_num_detections, int[] frames_ready, int buffer_size);
