@@ -243,7 +243,7 @@ public:
                 output_statuses[i] = outputs[i].get().wait_for_async_ready(outputs[i].get().get_frame_size(), TIMEOUT);
                 if (HAILO_SUCCESS != output_statuses[i]) { return; }
 
-                auto output_buffer = page_aligned_alloc(outputs[i].get().get_frame_size()); // leads to error, will be freed in the end of this block...
+                auto output_buffer = page_aligned_alloc(outputs[i].get().get_frame_size()); // leads to error segfault segmentation fault , will be freed in the end of this block...
                 output_statuses[i] = outputs[i].get().read_async(output_buffer.get(), outputs[i].get().get_frame_size(), output_async_callback);
                 if (HAILO_SUCCESS != output_statuses[i]) { return; }
                 // output_tensors.outputs[i].get()->m_queue.push(output_buffer);
