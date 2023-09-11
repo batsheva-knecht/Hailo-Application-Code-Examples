@@ -167,13 +167,13 @@ public:
         }
     }
 
-    static void output_async_callback(const OutputStream::CompletionInfo &completion_info)
-    {
-        if ((HAILO_SUCCESS != completion_info.status) && (HAILO_STREAM_ABORTED_BY_USER != completion_info.status)) {
-            // We will get HAILO_STREAM_ABORTED_BY_USER when activated_network_group is destructed.
-            std::cerr << "Got an unexpected status on callback. status=" << completion_info.status << std::endl;
-        }
-    }
+    // static void output_async_callback(const OutputStream::CompletionInfo &completion_info)
+    // {
+    //     if ((HAILO_SUCCESS != completion_info.status) && (HAILO_STREAM_ABORTED_BY_USER != completion_info.status)) {
+    //         // We will get HAILO_STREAM_ABORTED_BY_USER when activated_network_group is destructed.
+    //         std::cerr << "Got an unexpected status on callback. status=" << completion_info.status << std::endl;
+    //     }
+    // }
 
     hailo_status run() {
         auto inputs = network_group->get_input_streams();
@@ -220,16 +220,33 @@ public:
         for (auto& status : output_statuses) {
             status.store(HAILO_UNINITIALIZED);
         }
+        std::vector<OutputStream::TransferDoneCallback> output_async_callbacks_guard;
         for (int i = 0; i < num_outputs; i++) {
-            output_threads.emplace_back(std::thread([&print_mutex=print_mutex, &output_statuses, &outputs, i, &output_tensors, &input_ctr=input_ctr, &output_ctr=output_ctr[i], &continue_run=continue_run, &print=print]() {
+            // [b7 debug] was: OutputStream::TransferDoneCallback output_async_callback = [&output_queue=output_tensors.outputs[i].get()->m_queue](const OutputStream::CompletionInfo &completion_info)
+            OutputStream::TransferDoneCallback output_async_callback = [&output_queue=output_tensors.outputs[i]->m_queue](const OutputStream::CompletionInfo &completion_info) {
+                if ((HAILO_SUCCESS != completion_info.status) && (HAILO_STREAM_ABORTED_BY_USER != completion_info.status)) {
+                    // We will get HAILO_STREAM_ABORTED_BY_USER when activated_network_group is destructed.
+                    std::cerr << "Got an unexpected status on callback. status=" << completion_info.status << std::endl;
+                }
+                std::cout << "inside output async callback" << std::endl; // b7 debug
+                // std::shared_ptr<uint8_t> receivedBuffer(static_cast<uint8_t*>(completion_info.buffer_addr), [](uint8_t*) {});
+                std::shared_ptr<uint8_t> receivedBuffer(static_cast<uint8_t*>(completion_info.buffer_addr));
+                std::cout << "inside output async callback, ok 1" << std::endl; // b7 debug
+                output_queue.push(receivedBuffer);
+                std::cout << "inside output async callback, ok 2" << std::endl; // b7 debug
+            };
+            output_async_callbacks_guard.push_back(output_async_callback);
+        }
+        for (int i = 0; i < num_outputs; i++) {
+            output_threads.emplace_back(std::thread([&print_mutex=print_mutex, &output_statuses, &outputs, i, &output_tensors, &input_ctr=input_ctr, &output_ctr=output_ctr[i], &continue_run=continue_run, &print=print, &output_async_callback=output_async_callbacks_guard[i]]() {
             while (output_ctr < input_ctr || continue_run) { // we haven't finished to process all the input frames // TODO: if possible without bool continue_run, it will be clearer.
                 output_statuses[i] = outputs[i].get().wait_for_async_ready(outputs[i].get().get_frame_size(), TIMEOUT);
                 if (HAILO_SUCCESS != output_statuses[i]) { return; }
 
-                auto output_buffer = page_aligned_alloc(outputs[i].get().get_frame_size());
+                auto output_buffer = page_aligned_alloc(outputs[i].get().get_frame_size()); // leads to error, will be freed in the end of this block...
                 output_statuses[i] = outputs[i].get().read_async(output_buffer.get(), outputs[i].get().get_frame_size(), output_async_callback);
                 if (HAILO_SUCCESS != output_statuses[i]) { return; }
-                output_tensors.outputs[i].get()->m_queue.push(output_buffer);
+                // output_tensors.outputs[i].get()->m_queue.push(output_buffer);
                 if (print) {
                     std::unique_lock<std::mutex> lock(print_mutex);
                     std::cout << "output async read " << output_ctr << ", thread " << i << std::endl;
@@ -257,20 +274,27 @@ public:
                     std::cout << "post-process async write " << pp_ctr << std::endl;
                 }
                 cv::Mat raw_frame(camera.getHeight(), camera.getWidth(), CV_8UC3, static_cast<void*>(raw_input.get()));
+                std::cout << "still fine 1 :) " << pp_ctr << std::endl;
 
                 FeatureMap feature_map_2(out_2, output_tensors.outputs[2]->m_height, output_tensors.outputs[2]->m_width, output_tensors.outputs[2]->m_channels, 
                 default_anchors_num, default_feature_map_channels, output_tensors.outputs[2]->m_qp_zp, output_tensors.outputs[2]->m_qp_scale, default_conf_threshold, {116, 90, 156, 198, 373, 326});
+                std::cout << "still fine 2 :) " << pp_ctr << std::endl;
                 FeatureMap feature_map_1(out_1, output_tensors.outputs[1]->m_height, output_tensors.outputs[1]->m_width, output_tensors.outputs[1]->m_channels, 
                 default_anchors_num, default_feature_map_channels, output_tensors.outputs[1]->m_qp_zp, output_tensors.outputs[1]->m_qp_scale, default_conf_threshold, {30, 61, 62, 45, 59, 119});
+                std::cout << "still fine 3 :) " << pp_ctr << std::endl;
                 FeatureMap feature_map_0(out_0, output_tensors.outputs[0]->m_height, output_tensors.outputs[0]->m_width, output_tensors.outputs[0]->m_channels, 
                 default_anchors_num, default_feature_map_channels, output_tensors.outputs[0]->m_qp_zp, output_tensors.outputs[0]->m_qp_scale, default_conf_threshold, {10, 13, 16, 30, 33, 23});
+                std::cout << "still fine 4 :) " << pp_ctr << std::endl;
                 
                 YoloPost yolo_post;
+                std::cout << "still fine 5 :) " << pp_ctr << std::endl;
                 yolo_post.feature_maps.push_back(feature_map_2);
                 yolo_post.feature_maps.push_back(feature_map_1);
                 yolo_post.feature_maps.push_back(feature_map_0);
+                std::cout << "still fine 6 :) " << pp_ctr << std::endl;
 
                 std::vector<DetectionObject> detections = yolo_post.decode();
+                std::cout << "still fine 7 :) " << pp_ctr << std::endl;
                 // // -------------------------------------------------------------------------------------------------------------------
 
                 for (auto& detection : detections) {
