@@ -8,7 +8,7 @@ find_package(OpenCV REQUIRED)
 
 add_executable(${PROJECT_NAME} multi_async.cpp yolo_post.cpp)
 
-include_directories(${OpenCV_INCLUDE_DIRS})
+include_directories(${OpenCV_INCLUDE_DIRS}) 
 
 target_link_libraries(${PROJECT_NAME} PRIVATE HailoRT::libhailort Threads::Threads ${OpenCV_LIBS})
 
